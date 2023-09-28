@@ -4,15 +4,15 @@ export const firstMembers = [
 ];
 
 // DAO config
-export const daoName = "Our DAO" // Give your DAO a name.
-export const votingDelay = 1 // Just 1 block voting delay by default.
-export const votingPeriod = 300 // Depends on the network you're deploying to.
+export const daoName = "#DontBeLate Collective" // Give your DAO a name.
+export const votingDelay = 1 
+export const votingPeriod = 60 * 10 // Depends on the network you're deploying to.
 export const quorum = 20 // Classic 20% quorum by default.
 export const votingThreshold = 0 // 0 allows non-members to submit proposals.
 
 // NFT config
-export const nftSymbol = "MEMBER" // NFT symbol
-export const nftDescription = "This is us." // Nft description
+export const nftSymbol = "EARLY" // NFT symbol
+export const nftDescription = "Welcome home." // Nft description
 
 // set to false if you don't want any specific attributes to the membership NFT
 export const attributes = true

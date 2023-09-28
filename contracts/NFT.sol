@@ -10,8 +10,7 @@ import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/draft-ERC721Votes.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
-/// @title DAO Membership NFT contract
-/// @author Web3 Hackers Collective
+/// @title DontBeLate DAO Membership NFT contract
 contract NFT is
     ERC721,
     ERC721Enumerable,
@@ -25,15 +24,26 @@ contract NFT is
 
     Counters.Counter private _tokenIdCounter;
 
+    address public imnotlate;
+    address public wp;
+
+    mapping(uint256 => bool) public claimed;
+
+    event Claimed(uint256 indexed tokenId, uint256 indexed wpTokenId);
+
     constructor(
         address[] memory _firstMembers,
         string memory _uri,
         string memory _name,
-        string memory _symbol
+        string memory _symbol,
+        address _imnotlate,
+        address _wp
     ) ERC721(_name, _symbol) EIP712(_name, "1") {
         for (uint i; i < _firstMembers.length; i++) {
             safeMint(_firstMembers[i], _uri);
         }
+        imnotlate = _imnotlate;
+        wp = _wp;
     }
 
     // Overrides IERC6372 functions to make the token & governor timestamp-based
@@ -56,6 +66,27 @@ contract NFT is
         _tokenIdCounter.increment();
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, uri);
+    }
+
+    /// @notice Adds a member
+    /// @dev Caller must own the 2 NFTs AND claim for the first time
+    /// @param to The address of the recipient
+    function mint(address to) public {
+        require(
+            claimed[tokenOfOwnerByIndex(to, 0)] == false,
+            "Caller already claimed"
+        );
+        require(ERC721(wp).balanceOf(to) > 0, "Not owner of White Paper NFT");
+        require(
+            ERC721(imnotlate).balanceOf(to) > 0,
+            "Not owner of Imnotlate NFT"
+        );
+        uint256 tokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
+        _safeMint(to, tokenId);
+        _setTokenURI(tokenId, tokenURI(tokenOfOwnerByIndex(to, 0)));
+        claimed[tokenOfOwnerByIndex(to, 0)] = true;
+        emit Claimed(tokenId, tokenOfOwnerByIndex(to, 0));
     }
 
     function _beforeTokenTransfer(
