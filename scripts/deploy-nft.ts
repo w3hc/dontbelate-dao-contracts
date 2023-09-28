@@ -1,4 +1,3 @@
-// npx hardhat run scripts/deploy-nft.ts --network goerli
 import hre, { ethers, network, artifacts } from 'hardhat'
 import fs from 'fs'
 const color = require("cli-color")
@@ -44,39 +43,44 @@ async function main() {
   console.log("\ncid:", cid)
   const nftName = daoName + " Membership"
 
-  let metaLabs
+  let metadata:any
   if (attributes === true) {
-    metaLabs = [
-      {
-        "trait_type": "Participation rate (%)",
-        "value": participationRate,
-      },
-      {
-        "trait_type": "Contribs",
-        "value": contribs,
-      },
-      {
-        "trait_type": "DAO",
-        "value": daoAddress,
-      },
-      {
-        "trait_type": "Nickname",
-        "value": nickname,
-      },
-      {
-        "trait_type": "Role",
-        "value": role,
-      },
-    ]
-  } else metaLabs = []
-
-  // Edit the following variable
-  const metadata = {
-    "name": nftName,
-    "description": nftDescription,
-    "image": "ipfs://" + cid + "/" + fileName,
-    "attributes": [],
-  };
+    metadata = {
+      "name": nftName,
+      "description": nftDescription,
+      "image": "ipfs://" + cid + "/" + fileName,
+      "attributes":[
+        {
+          "trait_type": "Participation rate (%)",
+          "value": participationRate,
+        },
+        {
+          "trait_type": "Contribs",
+          "value": contribs,
+        },
+        {
+          "trait_type": "DAO",
+          "value": daoAddress,
+        },
+        {
+          "trait_type": "Nickname",
+          "value": nickname,
+        },
+        {
+          "trait_type": "Role",
+          "value": role,
+        },
+      ]
+    }
+  } else {
+    metadata = {
+      "name": nftName,
+      "description": nftDescription,
+      "image": "ipfs://" + cid + "/" + fileName
+    }
+  }
+  
+  
 
   function makeFileObjects() {
     const blob = new Blob([JSON.stringify(metadata)], {
@@ -101,7 +105,7 @@ async function main() {
 
   console.log("\nNFT deployment in progress...") 
   const NFT = await ethers.getContractFactory("NFT")
-  const nft = await NFT.deploy(firstMembers, uri, nftName, nftSymbol)
+  const nft = await NFT.deploy(firstMembers, uri, nftName, nftSymbol, "0x159025f4A1FbA5e592317b2Ff988004f8582Ca78", "0xf14D471f25df3E4A28515703D978A87247f1018b")
   await nft.deployed()
   console.log("\nNFT deployed at", msg(nft.address), "✅")
   const receipt = await ethers.provider.getTransactionReceipt(nft.deployTransaction.hash)

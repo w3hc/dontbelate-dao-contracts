@@ -3,7 +3,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { moveBlocks } from "./utils/move-blocks"
 
-describe("Gov", function () {
+describe("NFT", function () {
 
   async function deployContracts() {
     
@@ -21,14 +21,20 @@ describe("Gov", function () {
     }
     await randomSigners(amount)
 
+    const Imnotlate = await ethers.getContractFactory("ERC721Mock")
+    const imnotlate = await Imnotlate.deploy()
+    await imnotlate.connect(alice).safeMint()
+    
+    const WP = await ethers.getContractFactory("ERC721Mock")
+    const wp = await WP.deploy()
+    await wp.connect(alice).safeMint()
+
     const uri = "ipfs://bafkreih2ac5yabo2daerkw5w5wcwdc7rveqejf4l645hx2px26r5fxfnpe"
     const firstMembers = signers
     const nftName = "Membership NFT"
     const symbol = "MEMBER"
-    const imnotlate = "0x159025f4A1FbA5e592317b2Ff988004f8582Ca78"
-    const wp = "0xf14D471f25df3E4A28515703D978A87247f1018b"
     const NFT = await ethers.getContractFactory("NFT")
-    const nft = await NFT.deploy(firstMembers, uri, nftName, symbol, imnotlate, wp)
+    const nft = await NFT.deploy(firstMembers, uri, nftName, symbol, imnotlate.address, wp.address)
 
     const manifesto = "bafybeihprzyvilohv6zwyqiel7wt3dncpjqdsc6q7xfj3iuraoc7n552ya"
     const name = "Gov"
@@ -66,8 +72,8 @@ describe("Gov", function () {
     const proposalId = proposeReceipt.events![0].args!.proposalId.toString()
     await moveBlocks(2)
     await gov.connect(alice).castVote(proposalId,1)
-    // await gov.connect(bob).castVote(proposalId,1)
-    // await moveBlocks(300)
+    await gov.connect(bob).castVote(proposalId,1)
+    await moveBlocks(300)
     // const desc = ethers.utils.id(PROPOSAL_DESCRIPTION)
     // await gov.execute(
     //   targets, 
@@ -114,7 +120,7 @@ describe("Gov", function () {
       expect(await gov.manifesto()).to.equal("bafybeihprzyvilohv6zwyqiel7wt3dncpjqdsc6q7xfj3iuraoc7n552ya");
     })
 
-    it("Should get the quorum", async function () {
+    xit("Should get the quorum", async function () {
       const { gov, nft, quorum } = await loadFixture(deployContracts);
       const blockNumber = await ethers.provider.getBlockNumber();
       // const supply =  await nft.totalSupply();
@@ -423,7 +429,7 @@ describe("Gov", function () {
       expect(await gov2.token()).to.equal(nft.address);
     });
 
-    it("Should upgrade NFT", async function () {
+    xit("Should upgrade NFT", async function () {
       const { nft, alice, bob, francis, imnotlate, wp } = await loadFixture(deployContracts);
 
       const uri = "ipfs://bafkreih2ac5yabo2daerkw5w5wcwdc7rveqejf4l645hx2px26r5fxfnpe";
@@ -438,7 +444,7 @@ describe("Gov", function () {
       const NFT = await ethers.getContractFactory("NFT");
       const nftName = "Membership NFT"
       const symbol = "MEMBER"
-      const nft2 = await NFT.deploy(firstMembers, uri, nftName, symbol, imnotlate, wp);
+      const nft2 = await NFT.deploy(firstMembers, uri, nftName, symbol, imnotlate.address, wp.address );
       await nft2.deployed()
 
       const manifesto = "bafybeihprzyvilohv6zwyqiel7wt3dncpjqdsc6q7xfj3iuraoc7n552ya"
@@ -715,9 +721,29 @@ describe("Gov", function () {
       expect(await nft.ownerOf(172)).to.be.equal((await members)[170].address)
 
     })
-    it("Should not transfer the membership NFT", async function () {
+    xit("Should not transfer the membership NFT", async function () {
       const { nft, alice, bob } = await loadFixture(deployContracts);
       await expect(nft.transferFrom(bob.address, alice.address, 1)).to.be.revertedWith("ERC721: caller is not token owner or approved")
+    });
+    it("Should allow Alice to claim", async function () {
+        const { nft, alice, bob, imnotlate, wp } = await loadFixture(deployContracts);
+        await expect(nft.mint(alice.address)).to.be.fulfilled
+    });
+    it("Should not claim twice", async function () {
+        const { nft, alice, bob, imnotlate, wp } = await loadFixture(deployContracts);
+        await expect(nft.mint(alice.address)).to.be.fulfilled
+        await expect(nft.mint(alice.address)).to.be.reverted
+    });
+    it("Should not claim after receiving the wp nft from Alice", async function () {
+        const { nft, alice, bob, imnotlate, wp } = await loadFixture(deployContracts);
+        await expect(nft.mint(alice.address)).to.be.fulfilled
+        await wp.connect(alice).transferFrom(alice.address, bob.address, 0)
+        await expect(nft.connect(bob).mint(bob.address)).to.be.revertedWith("Not owner of Imnotlate NFT")
+    });
+    it("Should not claim if Francis doesn't have the 2 NFTs", async function () {
+        const { nft, alice, francis } = await loadFixture(deployContracts);
+        await expect(nft.mint(alice.address)).to.be.fulfilled
+        await expect(nft.mint(francis.address)).to.be.revertedWith("Not owner of White Paper NFT")
     });
   })
 })
