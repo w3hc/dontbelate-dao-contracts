@@ -72,20 +72,17 @@ contract NFT is
     /// @dev Caller must own the 2 NFTs AND claim for the first time
     /// @param to The address of the recipient
     function mint(address to) public {
+        require(NFT(wp).balanceOf(to) > 0, "Not owner of White Paper NFT");
+        require(NFT(imnotlate).balanceOf(to) > 0, "Not owner of Imnotlate NFT");
         require(
-            claimed[tokenOfOwnerByIndex(to, 0)] == false,
+            claimed[NFT(wp).tokenOfOwnerByIndex(to, 0)] == false,
             "Caller already claimed"
-        );
-        require(ERC721(wp).balanceOf(to) > 0, "Not owner of White Paper NFT");
-        require(
-            ERC721(imnotlate).balanceOf(to) > 0,
-            "Not owner of Imnotlate NFT"
         );
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, tokenURI(tokenOfOwnerByIndex(to, 0)));
-        claimed[tokenOfOwnerByIndex(to, 0)] = true;
+        claimed[NFT(wp).tokenOfOwnerByIndex(to, 0)] = true;
         emit Claimed(tokenId, tokenOfOwnerByIndex(to, 0));
     }
 
