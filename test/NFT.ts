@@ -7,10 +7,10 @@ describe("NFT", function () {
 
   async function deployContracts() {
     
-    let [deployer, alice, bob, francis] = await ethers.getSigners()
+    let [deployer, alice, bob, francis, emma] = await ethers.getSigners()
 
     let amount:number = 10
-    let signers:any = [alice.address, bob.address, francis.address]
+    let signers:any = [alice.address, bob.address]
     const randomSigners = async (amount:number) => {
       for (let i = 0; i < amount; i++) {
         const x = ethers.Wallet.createRandom()
@@ -23,11 +23,11 @@ describe("NFT", function () {
 
     const Imnotlate = await ethers.getContractFactory("ERC721Mock")
     const imnotlate = await Imnotlate.deploy()
-    await imnotlate.connect(alice).safeMint()
+    await imnotlate.connect(francis).safeMint()
     
     const WP = await ethers.getContractFactory("ERC721Mock")
     const wp = await WP.deploy()
-    await wp.connect(alice).safeMint()
+    await wp.connect(francis).safeMint()
 
     const uri = "ipfs://bafkreih2ac5yabo2daerkw5w5wcwdc7rveqejf4l645hx2px26r5fxfnpe"
     const firstMembers = signers
@@ -95,7 +95,7 @@ describe("NFT", function () {
     const erc1155Mock = await ERC1155Mock.deploy();
     await erc1155Mock.safeTransferFrom(deployer.address, gov.address, 1, 1, "0x")
 
-    return { gov, nft, deployer, alice, bob, francis, erc20Mock, erc721Mock, erc1155Mock, signers, amount, quorum, firstMembers, imnotlate, wp }
+    return { gov, nft, deployer, alice, bob, francis, emma, erc20Mock, erc721Mock, erc1155Mock, signers, amount, quorum, firstMembers, imnotlate, wp }
   }
 
   describe("Deployment", function () {
@@ -725,25 +725,33 @@ describe("NFT", function () {
       const { nft, alice, bob } = await loadFixture(deployContracts);
       await expect(nft.transferFrom(bob.address, alice.address, 1)).to.be.revertedWith("ERC721: caller is not token owner or approved")
     });
-    it("Should allow Alice to claim", async function () {
-        const { nft, alice, bob, imnotlate, wp } = await loadFixture(deployContracts);
-        await expect(nft.mint(alice.address)).to.be.fulfilled
+    it("Should allow Francis to claim", async function () {
+        const { nft, francis, imnotlate, wp } = await loadFixture(deployContracts);
+        console.log('imnotlate:', await imnotlate.balanceOf(francis.address))
+        console.log('wp:', await wp.balanceOf(francis.address))
+        console.log('tokenOfOwnerByIndex(to, 0)', await wp.tokenOfOwnerByIndex(francis.address, 0))
+        await nft.mint(francis.address)
+        expect(await nft.balanceOf(francis.address)).to.be.equal(1)
+        console.log('dontbelate:', await nft.balanceOf(francis.address))
     });
     it("Should not claim twice", async function () {
-        const { nft, alice, bob, imnotlate, wp } = await loadFixture(deployContracts);
-        await expect(nft.mint(alice.address)).to.be.fulfilled
-        await expect(nft.mint(alice.address)).to.be.reverted
+        const { nft, francis } = await loadFixture(deployContracts);
+        await expect(nft.mint(francis.address)).to.be.fulfilled
+        expect(await nft.balanceOf(francis.address)).to.be.equal(1)
+        await expect(nft.mint(francis.address)).to.be.revertedWith("Caller already claimed")
     });
-    it("Should not claim after receiving the wp nft from Alice", async function () {
-        const { nft, alice, bob, imnotlate, wp } = await loadFixture(deployContracts);
-        await expect(nft.mint(alice.address)).to.be.fulfilled
-        await wp.connect(alice).transferFrom(alice.address, bob.address, 0)
-        await expect(nft.connect(bob).mint(bob.address)).to.be.revertedWith("Not owner of Imnotlate NFT")
+    it("Should not claim after receiving the wp nft from Francis", async function () {
+        const { nft, francis, bob, imnotlate, wp } = await loadFixture(deployContracts);
+        await expect(nft.mint(francis.address)).to.be.fulfilled
+        await wp.connect(francis).transferFrom(francis.address, bob.address, 0)
+        await expect(nft.connect(bob).mint(bob.address)).to.be.reverted
     });
-    it("Should not claim if Francis doesn't have the 2 NFTs", async function () {
-        const { nft, alice, francis } = await loadFixture(deployContracts);
-        await expect(nft.mint(alice.address)).to.be.fulfilled
-        await expect(nft.mint(francis.address)).to.be.revertedWith("Not owner of White Paper NFT")
+    it("Should not claim if Emma doesn't have the 2 NFTs", async function () {
+        const { nft, alice, francis, deployer, imnotlate, wp, emma } = await loadFixture(deployContracts);
+        await expect(nft.mint(francis.address)).to.be.fulfilled
+        console.log('imnotlate:', await imnotlate.balanceOf(emma.address))
+        console.log('wp:', await wp.balanceOf(emma.address))
+        await expect(nft.mint(emma.address)).to.be.reverted
     });
   })
 })
